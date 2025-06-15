@@ -1,8 +1,9 @@
 from fastapi import FastAPI,Depends,status,Response,HTTPException
-from .schemas import Blog
+from .schemas import Blog,User,ShowUser
 from . import models
 from .database import engine,SessionLocal
 from sqlalchemy.orm import Session
+from passlib.context import CryptContext
 app= FastAPI()
 
 models.Base.metadata.create_all(engine)
@@ -16,7 +17,7 @@ def get_db():
 
 @app.post("/blog",status_code=status.HTTP_201_CREATED)
 def ceate_blog(blog:Blog,db:Session=Depends(get_db)):
-    new_blog=models.Blog(title=blog.title,body=blog.content)
+    new_blog=models.Blog(title=blog.title,body=blog.content,user_id=1)
     db.add(new_blog)
     db.commit()
     db.refresh(new_blog)
@@ -63,4 +64,29 @@ def update_blog(id,request:Blog,db:Session=Depends(get_db)):
     # blog.update(request)
     db.commit()
     return "Blog updated successfully"
+
+
+
+
+pwd_cxt=CryptContext(schemes=["bcrypt"],deprecated="auto")
+#Response Model 
+@app.post('/user',response_model=ShowUser,tags=["users"])
+def create_user(user:User,db:Session=Depends(get_db)):
+    hashed_password=pwd_cxt.hash(user.password)
+    new_user=models.User(name=user.name,email=user.email,password=hashed_password)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+@app.get("/user/{id}",response_model=ShowUser,tags=["users"])
+def get_user(id:int,db:Session=Depends(get_db)):
+    user=db.query(models.User).filter(models.User.id==id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"User with id {id} not found")
+    return user
+
+
+
+#Relationships
 
