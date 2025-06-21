@@ -7,3 +7,11 @@ engine=create_engine('sqlite:///./blog.db', echo=True,connect_args={"check_same_
 
 Base = declarative_base()
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def get_db():
+    db=SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
