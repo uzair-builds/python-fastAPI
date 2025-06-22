@@ -3,25 +3,18 @@ from sqlalchemy.orm import Session
 from blog.database import get_db
 from blog import models
 from blog.schemas import ShowUser, User
-from passlib.context import CryptContext
+from blog.repo.user import create_user_repo,get_user_by_id
 
+router= APIRouter(
+    tags=["Users"],
+    prefix="/user"
+)
 
-router= APIRouter()
-
-pwd_cxt=CryptContext(schemes=["bcrypt"],deprecated="auto")
 #Response Model 
-@router.post('/user',response_model=ShowUser,tags=["users"])
+@router.post('/',response_model=ShowUser)
 def create_user(user:User,db:Session=Depends(get_db)):
-    hashed_password=pwd_cxt.hash(user.password)
-    new_user=models.User(name=user.name,email=user.email,password=hashed_password)
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
-    return new_user
+    return create_user_repo(user, db)
 
-@router.get("/user/{id}",response_model=ShowUser,tags=["users"])
+@router.get("/{id}",response_model=ShowUser)
 def get_user(id:int,db:Session=Depends(get_db)):
-    user=db.query(models.User).filter(models.User.id==id).first()
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,detail=f"User with id {id} not found")
-    return user
+    return get_user_by_id(id, db)
